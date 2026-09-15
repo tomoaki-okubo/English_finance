@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:llama_cpp_dart/llama_cpp_dart.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../domain/entities/llm_config.dart';
+import '../../../exercises/data/sources/drill_seeds_data.dart';
+import '../../../exercises/domain/entities/drill_seed.dart';
 
 /// Real On-Device iOS LLM Driver using llama_cpp_dart (Metal Accelerated with CPU Fallback)
 class LlamaCppDriver {
@@ -239,24 +241,34 @@ class LlamaCppDriver {
     if (prompt.contains('quiz writer') || prompt.contains('question":')) {
       final termMatch = RegExp(r'word "([^"]+)"').firstMatch(prompt);
       final term = termMatch?.group(1) ?? '_____';
-      
-      final categoryMatch = RegExp(r'about ([^(]+)\(([^)]+)\)').firstMatch(prompt);
-      final category = categoryMatch?.group(1)?.trim() ?? 'Finance';
-      final topic = categoryMatch?.group(2)?.trim() ?? 'Banking';
 
-      // Rich contextual templates tailored for financial domains
-      final List<String> patterns = [
-        "In the context of $category ($topic), the financial analyst emphasized the importance of _____ during the executive briefing.",
-        "The senior management team reviewed the updated _____ policy to ensure full alignment with regulatory expectations.",
-        "To optimize balance sheet performance in $topic, our treasury division decided to restructure the firm's _____ framework.",
-        "During the cross-border transaction review, both parties agreed to include a clear _____ clause in the agreement.",
-        "Market participants closely monitored the central bank's announcement regarding changes to the _____ benchmark.",
-        "Before finalizing the syndicated financing facility, the credit committee requested a detailed assessment of the _____ position.",
-        "The investment committee approved the new $topic mandate after confirming that the _____ parameters were well within established risk limits.",
-      ];
+      // 1. Try to find curated seed sentence from DrillSeedsData for the target term
+      final matchingSeed = DrillSeedsData.allSeeds.cast<DrillSeed?>().firstWhere(
+        (s) => s?.targetTerm.toLowerCase() == term.toLowerCase(),
+        orElse: () => null,
+      );
 
-      final randomIndex = (DateTime.now().millisecondsSinceEpoch ~/ 100) % patterns.length;
-      final generatedSentence = patterns[randomIndex];
+      String generatedSentence;
+      if (matchingSeed != null && matchingSeed.defaultSentence.isNotEmpty) {
+        generatedSentence = matchingSeed.defaultSentence;
+      } else {
+        final categoryMatch = RegExp(r'about ([^(]+)\(([^)]+)\)').firstMatch(prompt);
+        final category = categoryMatch?.group(1)?.trim() ?? 'Finance';
+        final topic = categoryMatch?.group(2)?.trim() ?? 'Banking';
+
+        final List<String> patterns = [
+          "In the context of $category ($topic), the financial analyst emphasized the importance of _____ during the executive briefing.",
+          "The senior management team reviewed the updated _____ policy to ensure full alignment with regulatory expectations.",
+          "To optimize balance sheet performance in $topic, our treasury division decided to restructure the firm's _____ framework.",
+          "During the cross-border transaction review, both parties agreed to include a clear _____ clause in the agreement.",
+          "Market participants closely monitored the central bank's announcement regarding changes to the _____ benchmark.",
+          "Before finalizing the syndicated financing facility, the credit committee requested a detailed assessment of the _____ position.",
+          "The investment committee approved the new $topic mandate after confirming that the _____ parameters were well within established risk limits.",
+        ];
+
+        final randomIndex = (DateTime.now().millisecondsSinceEpoch ~/ 100) % patterns.length;
+        generatedSentence = patterns[randomIndex];
+      }
 
       print('[LlamaCppDriver] Generated finance AI question for term "$term": $generatedSentence');
       return '{"question": "$generatedSentence"}';
@@ -280,59 +292,74 @@ class LlamaCppDriver {
         }
       }
 
-      // Financial term dictionary for accurate Japanese translations
-      final termTranslations = <String, String>{
-        'turnover': '回転率（turnover）',
-        'hostile': '敵対的（hostile）',
-        'forecast': '業績予想（forecast）',
-        'liquidate': '清算（liquidate）',
-        'benchmark': 'ベンチマーク（benchmark）',
-        'reserve': '準備金（reserve）',
-        'guarantee': '保証（guarantee）',
-        'buffer': 'バッファー（buffer）',
-        'escrow': 'エスクロー（escrow）',
-        'collateral': '担保（collateral）',
-        'covenant': '財務誓約条項（covenant）',
-        'syndicated': 'シンジケート・協調融資（syndicated）',
-        'amortization': '減価償却（amortization）',
-        'liquidity': '流動性（liquidity）',
-        'solvency': '支払能力（solvency）',
-        'leverage': 'レバレッジ（leverage）',
-        'maturity': '満期（maturity）',
-        'derivative': 'デリバティブ（derivative）',
-        'hedging': 'ヘッジ（hedging）',
-        'valuation': '企業価値評価（valuation）',
-        'default': 'デフォルト（default）',
-        'yield': '利回り（yield）',
-        'spread': 'スプレッド（spread）',
-        'equity': '自己資本（equity）',
-        'liability': '負債（liability）',
-        'impairment': '減損（impairment）',
-        'arbitrage': '裁定取引（arbitrage）',
-        'dividend': '配当（dividend）',
-      };
+      // 1. Check if inputSentence matches a curated seed sentence from DrillSeedsData
+      final matchingSeed = DrillSeedsData.allSeeds.cast<DrillSeed?>().firstWhere(
+        (s) => s?.targetTerm.toLowerCase() == targetTerm.toLowerCase(),
+        orElse: () => null,
+      );
 
-      final hasJapaneseHint = hint.isNotEmpty && RegExp(r'[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]').hasMatch(hint);
-      String termJa = hasJapaneseHint
-          ? '$hint（$targetTerm）'
-          : (termTranslations[targetTerm.toLowerCase()] ?? targetTerm);
-      if (termJa.isEmpty) termJa = targetTerm;
+      String translation = '';
+      if (matchingSeed != null && matchingSeed.sentenceTranslation.isNotEmpty) {
+        final expectedFull = matchingSeed.defaultSentence.replaceAll('_____', matchingSeed.targetTerm);
+        if (inputSentence.isEmpty || inputSentence.replaceAll(' ', '') == expectedFull.replaceAll(' ', '')) {
+          translation = matchingSeed.sentenceTranslation;
+        }
+      }
 
-      String translation = "金融実務および市場環境の分析に基づき、$termJa に関する適切な施策とリスク評価を実施します。";
-      if (inputSentence.contains('analyst emphasized') || inputSentence.contains('executive briefing')) {
-        translation = "役員向けブリーフィングにおいて、金融アナリストは「$termJa」の重要性を強調しました。";
-      } else if (inputSentence.contains('senior management') || inputSentence.contains('regulatory expectations')) {
-        translation = "経営陣は、規制当局の期待および「$termJa」の方針に完全に合致するよう見直しを行いました。";
-      } else if (inputSentence.contains('balance sheet') || inputSentence.contains('treasury')) {
-        translation = "財務部門は、バランスシートのパフォーマンス向上に向けて当社の「$termJa」枠組みの再構築を決定しました。";
-      } else if (inputSentence.contains('cross-border') || inputSentence.contains('clause')) {
-        translation = "クロスボーダー取引のレビューにおいて、双方は「$termJa」に関する明確な条項を含めることに合意しました。";
-      } else if (inputSentence.contains('central bank') || inputSentence.contains('benchmark')) {
-        translation = "市場参加者は、「$termJa」指標の変更に関する中央銀行の発表を注視しました。";
-      } else if (inputSentence.contains('credit committee') || inputSentence.contains('syndicated')) {
-        translation = "協調融資枠の最終決定に先立ち、信用委員会は「$termJa」に関する詳細な評価を要請しました。";
-      } else if (inputSentence.contains('investment committee') || inputSentence.contains('risk limits')) {
-        translation = "投資委員会は、「$termJa」のパラメータが設定されたリスク制限内に収まっていることを確認し、新たな方針を承認しました。";
+      if (translation.isEmpty) {
+        final termTranslations = <String, String>{
+          'turnover': '回転率（turnover）',
+          'hostile': '敵対的（hostile）',
+          'forecast': '業績予想（forecast）',
+          'liquidate': '清算（liquidate）',
+          'benchmark': 'ベンチマーク（benchmark）',
+          'reserve': '準備金（reserve）',
+          'guarantee': '保証（guarantee）',
+          'buffer': 'バッファー（buffer）',
+          'escrow': 'エスクロー（escrow）',
+          'collateral': '担保（collateral）',
+          'covenant': '財務誓約条項（covenant）',
+          'syndicated': 'シンジケート・協調融資（syndicated）',
+          'amortization': '減価償却（amortization）',
+          'liquidity': '流動性（liquidity）',
+          'solvency': '支払能力（solvency）',
+          'leverage': 'レバレッジ（leverage）',
+          'maturity': '満期（maturity）',
+          'derivative': 'デリバティブ（derivative）',
+          'hedging': 'ヘッジ（hedging）',
+          'valuation': '企業価値評価（valuation）',
+          'default': 'デフォルト（default）',
+          'yield': '利回り（yield）',
+          'spread': 'スプレッド（spread）',
+          'equity': '自己資本（equity）',
+          'liability': '負債（liability）',
+          'impairment': '減損（impairment）',
+          'arbitrage': '裁定取引（arbitrage）',
+          'dividend': '配当（dividend）',
+        };
+
+        final hasJapaneseHint = hint.isNotEmpty && RegExp(r'[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]').hasMatch(hint);
+        String termJa = hasJapaneseHint
+            ? '$hint（$targetTerm）'
+            : (termTranslations[targetTerm.toLowerCase()] ?? targetTerm);
+        if (termJa.isEmpty) termJa = targetTerm;
+
+        translation = "金融実務および市場環境の分析に基づき、$termJa に関する適切な施策とリスク評価を実施します。";
+        if (inputSentence.contains('analyst emphasized') || inputSentence.contains('executive briefing')) {
+          translation = "役員向けブリーフィングにおいて、金融アナリストは「$termJa」の重要性を強調しました。";
+        } else if (inputSentence.contains('senior management') || inputSentence.contains('regulatory expectations')) {
+          translation = "経営陣は、規制当局の期待および「$termJa」の方針に完全に合致するよう見直しを行いました。";
+        } else if (inputSentence.contains('balance sheet') || inputSentence.contains('treasury')) {
+          translation = "財務部門は、バランスシートのパフォーマンス向上に向けて当社の「$termJa」枠組みの再構築を決定しました。";
+        } else if (inputSentence.contains('cross-border') || inputSentence.contains('clause')) {
+          translation = "クロスボーダー取引のレビューにおいて、双方は「$termJa」に関する明確な条項を含めることに合意しました。";
+        } else if (inputSentence.contains('central bank') || inputSentence.contains('benchmark')) {
+          translation = "市場参加者は、「$termJa」指標の変更に関する中央銀行の発表を注視しました。";
+        } else if (inputSentence.contains('credit committee') || inputSentence.contains('syndicated')) {
+          translation = "協調融資枠の最終決定に先立ち、信用委員会は「$termJa」に関する詳細な評価を要請しました。";
+        } else if (inputSentence.contains('investment committee') || inputSentence.contains('risk limits')) {
+          translation = "投資委員会は、「$termJa」のパラメータが設定されたリスク制限内に収まっていることを確認し、新たな方針を承認しました。";
+        }
       }
 
       print('[LlamaCppDriver] Generated translation for sentence: $translation');
