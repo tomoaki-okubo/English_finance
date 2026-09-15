@@ -179,7 +179,8 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
           });
 
           // Step 2: Always trigger dedicated translation with few-shot prompt
-          _triggerTranslationRetry(generatedQuestion, seed.targetTerm, seed.hint);
+          final japaneseTerm = _extractJapaneseTerm(seed);
+          _triggerTranslationRetry(generatedQuestion, seed.targetTerm, japaneseTerm);
           return;
         }
       }
@@ -199,7 +200,45 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
     });
   }
 
-  Future<void> _triggerTranslationRetry(String questionWithBlank, String targetTerm, String hint) async {
+  String _extractJapaneseTerm(DrillSeed seed) {
+    final match = RegExp(r'[（(]([\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF/ー]+)[）)]').firstMatch(seed.explanation);
+    if (match != null && match.group(1) != null) {
+      return match.group(1)!;
+    }
+    const dict = {
+      'turnover': '回転率',
+      'hostile': '敵対的',
+      'forecast': '業績予想',
+      'liquidate': '清算',
+      'benchmark': 'ベンチマーク',
+      'reserve': '準備金',
+      'guarantee': '保証',
+      'buffer': 'バッファー',
+      'escrow': 'エスクロー',
+      'collateral': '担保',
+      'covenant': '財務誓約条項',
+      'syndicated': '協調融資（シンジケート）',
+      'amortization': '減価償却',
+      'liquidity': '流動性',
+      'solvency': '支払能力',
+      'leverage': 'レバレッジ',
+      'maturity': '満期',
+      'derivative': 'デリバティブ',
+      'hedging': 'ヘッジ',
+      'valuation': '企業価値評価',
+      'default': 'デフォルト',
+      'yield': '利回り',
+      'spread': 'スプレッド',
+      'equity': '自己資本',
+      'liability': '負債',
+      'impairment': '減損',
+      'arbitrage': '裁定取引',
+      'dividend': '配当',
+    };
+    return dict[seed.targetTerm.toLowerCase()] ?? seed.targetTerm;
+  }
+
+  Future<void> _triggerTranslationRetry(String questionWithBlank, String targetTerm, String japaneseTerm) async {
     setState(() {
       _isTranslationLoading = true;
       _currentTranslation = null;
@@ -216,7 +255,7 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
       const systemPrompt = 'あなたはプロの金融翻訳家です。英文を正確な日本語に和訳してください。'
           '対象の金融専門用語（target term）とその日本語訳・意味を省略せず、必ず自然な日本語訳の中に反映させてください。日本語のみ出力。';
       
-      final userText = 'Target Term: "$targetTerm" ($hint)\n'
+      final userText = 'Target Term: "$targetTerm" ($japaneseTerm)\n'
           'Sentence: $fullSentence →';
 
       final response = await repository.evaluateCorrection(

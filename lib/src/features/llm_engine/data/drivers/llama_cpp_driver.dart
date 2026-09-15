@@ -282,6 +282,11 @@ class LlamaCppDriver {
 
       // Financial term dictionary for accurate Japanese translations
       final termTranslations = <String, String>{
+        'turnover': '回転率（turnover）',
+        'hostile': '敵対的（hostile）',
+        'forecast': '業績予想（forecast）',
+        'liquidate': '清算（liquidate）',
+        'benchmark': 'ベンチマーク（benchmark）',
         'reserve': '準備金（reserve）',
         'guarantee': '保証（guarantee）',
         'buffer': 'バッファー（buffer）',
@@ -307,7 +312,10 @@ class LlamaCppDriver {
         'dividend': '配当（dividend）',
       };
 
-      String termJa = hint.isNotEmpty ? '$hint（$targetTerm）' : (termTranslations[targetTerm.toLowerCase()] ?? targetTerm);
+      final hasJapaneseHint = hint.isNotEmpty && RegExp(r'[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]').hasMatch(hint);
+      String termJa = hasJapaneseHint
+          ? '$hint（$targetTerm）'
+          : (termTranslations[targetTerm.toLowerCase()] ?? targetTerm);
       if (termJa.isEmpty) termJa = targetTerm;
 
       String translation = "金融実務および市場環境の分析に基づき、$termJa に関する適切な施策とリスク評価を実施します。";
