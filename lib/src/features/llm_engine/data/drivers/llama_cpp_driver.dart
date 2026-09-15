@@ -10,7 +10,7 @@ class LlamaCppDriver {
   LlamaParent? _llamaParent;
   bool _isInitialized = false;
 
-  static const String defaultModelFileName = 'qwen2.5-coder-0.5b-instruct-q4_k_m.gguf';
+  static const String defaultModelFileName = 'qwen2.5-0.5b-instruct-q4_k_m.gguf';
 
   LlamaCppDriver();
 

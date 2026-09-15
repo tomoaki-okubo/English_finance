@@ -398,7 +398,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                         leading: const Icon(Icons.smart_toy_outlined),
                         title: const Text('On-Device AI Model'),
                         subtitle: const Text(
-                          'Qwen2.5-Coder-0.5B-Instruct (Q4_K_M)',
+                          'Qwen2.5-0.5B-Instruct (Q4_K_M)',
                           style: TextStyle(fontSize: 12),
                         ),
                         trailing: Container(

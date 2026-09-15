@@ -50,9 +50,9 @@ final modelDownloaderProvider = StateNotifierProvider<ModelDownloaderService, Mo
 });
 
 class ModelDownloaderService extends StateNotifier<ModelDownloadState> {
-  // Qwen2.5-Coder-0.5B-Instruct-Q4_K_M GGUF (Lightweight, High-performance IT/Coding Model ~398MB)
-  static const String modelUrl = 'https://huggingface.co/Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF/resolve/main/qwen2.5-coder-0.5b-instruct-q4_k_m.gguf';
-  static const String modelFileName = 'qwen2.5-coder-0.5b-instruct-q4_k_m.gguf';
+  // Qwen2.5-0.5B-Instruct-Q4_K_M GGUF (Lightweight, High-performance Multilingual & Finance Model ~398MB)
+  static const String modelUrl = 'https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf';
+  static const String modelFileName = 'qwen2.5-0.5b-instruct-q4_k_m.gguf';
 
   ModelDownloaderService()
       : super(ModelDownloadState(
