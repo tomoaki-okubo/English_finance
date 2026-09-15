@@ -179,7 +179,7 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
           });
 
           // Step 2: Always trigger dedicated translation with few-shot prompt
-          _triggerTranslationRetry(generatedQuestion, seed.targetTerm);
+          _triggerTranslationRetry(generatedQuestion, seed.targetTerm, seed.hint);
           return;
         }
       }
@@ -199,7 +199,7 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
     });
   }
 
-  Future<void> _triggerTranslationRetry(String questionWithBlank, String targetTerm) async {
+  Future<void> _triggerTranslationRetry(String questionWithBlank, String targetTerm, String hint) async {
     setState(() {
       _isTranslationLoading = true;
       _currentTranslation = null;
@@ -213,12 +213,11 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
 
       final fullSentence = questionWithBlank.replaceAll('_____', targetTerm);
       
-      const systemPrompt = '金融英語を日本語に日本語全文で正確に和訳してください。要約や省略は不可。日本語のみ出力。';
+      const systemPrompt = 'あなたはプロの金融翻訳家です。英文を正確な日本語に和訳してください。'
+          '対象の金融専門用語（target term）とその日本語訳・意味を省略せず、必ず自然な日本語訳の中に反映させてください。日本語のみ出力。';
       
-      final userText = 'We need to analyze the debt-to-equity ratio before approving the acquisition. → 買収を承認する前に負債資本比率を分析する必要があります。\n'
-          'The central bank raised the key interest rate to curb inflation. → 中央銀行はインフレを抑制するために政策金利を引き上げました。\n'
-          'Investors are rebalancing their portfolios toward defensive stocks. → 投資家はディフェンシブ銘柄へとポートフォリオの再配分を行っています。\n\n'
-          '$fullSentence →';
+      final userText = 'Target Term: "$targetTerm" ($hint)\n'
+          'Sentence: $fullSentence →';
 
       final response = await repository.evaluateCorrection(
         userText: userText,
