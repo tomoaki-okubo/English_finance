@@ -940,7 +940,13 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
               ),
               const Gap(12),
               OutlinedButton(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go('/');
+                  }
+                },
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
