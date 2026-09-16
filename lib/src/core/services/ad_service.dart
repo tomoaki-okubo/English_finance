@@ -5,10 +5,10 @@ class AdService {
   static final AdService instance = AdService._internal();
   AdService._internal();
 
-  // Production Ad Unit IDs (TODO: Replace with actual ad unit IDs when ready)
-  static const String _prodBannerAdUnitId = 'ca-app-pub-3940256099942544/6300978111';
-  static const String _prodAppOpenAdUnitId = 'ca-app-pub-3940256099942544/9257395921';
-  static const String _prodInterstitialAdUnitId = 'ca-app-pub-3940256099942544/1033173712';
+  // Production Ad Unit IDs
+  static const String _prodBannerAdUnitId = 'ca-app-pub-3732541936670276/1305155377';
+  static const String _prodAppOpenAdUnitId = 'ca-app-pub-3732541936670276/5675645228';
+  static const String _prodInterstitialAdUnitId = 'ca-app-pub-3732541936670276/2504265982';
 
   // Test Ad Unit IDs (used as fallback in debug mode for safety)
   static const String _testBannerAdUnitId = 'ca-app-pub-3940256099942544/6300978111';
