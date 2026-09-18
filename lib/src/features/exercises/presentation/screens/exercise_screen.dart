@@ -341,28 +341,25 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
     return null;
   }
 
-  void _submitAnswer() {
-    setState(() {
-      _isAnswerRevealed = true;
-    });
+  void _handleNextQuestion() {
+    if (_totalQuestionsLimit != -1 && _questionCount >= _totalQuestionsLimit) {
+      AdService.instance.showInterstitialAd(
+        onAdDismissed: () {
+          if (mounted) {
+            setState(() {
+              _isQuizFinished = true;
+            });
+          }
+        },
+      );
+    } else {
+      _generateNextQuestion();
+    }
+  }
 
+  void _showCorrectionModal() {
     final isCorrect = _selectedOptionIndex == _currentDrill.correctIndex;
     final savedController = ref.read(savedDrillsControllerProvider.notifier);
-
-    if (isCorrect) {
-      _correctAnswersCount++;
-    }
-
-    // Record training activity on dashboard calendar
-    ref.read(trainingActivityControllerProvider.notifier).recordActivity(drills: 1);
-
-    // If incorrect, automatically record into mistakes notebook
-    if (!isCorrect) {
-      savedController.saveMistake(
-        drill: _currentDrill,
-        userAnswer: _currentDrill.options[_selectedOptionIndex],
-      );
-    }
 
     showModalBottomSheet(
       context: context,
@@ -389,24 +386,41 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
               setState(() {});
             },
             onNextQuestion: () {
-              if (_totalQuestionsLimit != -1 && _questionCount >= _totalQuestionsLimit) {
-                AdService.instance.showInterstitialAd(
-                  onAdDismissed: () {
-                    if (mounted) {
-                      setState(() {
-                        _isQuizFinished = true;
-                      });
-                    }
-                  },
-                );
-              } else {
-                _generateNextQuestion();
-              }
+              Navigator.of(context).pop();
+              _handleNextQuestion();
             },
           );
         },
       ),
     );
+  }
+
+  void _submitAnswer() {
+    if (_selectedOptionIndex == -1 || _isAnswerRevealed) return;
+
+    setState(() {
+      _isAnswerRevealed = true;
+    });
+
+    final isCorrect = _selectedOptionIndex == _currentDrill.correctIndex;
+    final savedController = ref.read(savedDrillsControllerProvider.notifier);
+
+    if (isCorrect) {
+      _correctAnswersCount++;
+    }
+
+    // Record training activity on dashboard calendar
+    ref.read(trainingActivityControllerProvider.notifier).recordActivity(drills: 1);
+
+    // If incorrect, automatically record into mistakes notebook
+    if (!isCorrect) {
+      savedController.saveMistake(
+        drill: _currentDrill,
+        userAnswer: _currentDrill.options[_selectedOptionIndex],
+      );
+    }
+
+    _showCorrectionModal();
   }
 
   @override
@@ -650,18 +664,48 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
                           const Gap(16),
                           Row(
                             children: [
-                              Expanded(
-                                child: ElevatedButton(
-                                  onPressed: _selectedOptionIndex == -1 || _isAnswerRevealed ? null : _submitAnswer,
-                                  style: ElevatedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
-                                    backgroundColor: theme.colorScheme.primary,
-                                    foregroundColor: theme.colorScheme.onPrimary,
+                              if (_isAnswerRevealed) ...[
+                                OutlinedButton.icon(
+                                  onPressed: _showCorrectionModal,
+                                  icon: const Icon(Icons.menu_book_rounded),
+                                  label: const Text('解説を表示', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                                   ),
-                                  child: const Text('Submit Answer', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                                 ),
-                              ),
+                                const Gap(12),
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: _handleNextQuestion,
+                                    style: ElevatedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(vertical: 16),
+                                      backgroundColor: theme.colorScheme.primary,
+                                      foregroundColor: theme.colorScheme.onPrimary,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                    ),
+                                    child: Text(
+                                      _totalQuestionsLimit != -1 && _questionCount >= _totalQuestionsLimit
+                                          ? '結果を見る'
+                                          : 'Next AI Question',
+                                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ),
+                              ] else ...[
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: _selectedOptionIndex == -1 ? null : _submitAnswer,
+                                    style: ElevatedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(vertical: 16),
+                                      backgroundColor: theme.colorScheme.primary,
+                                      foregroundColor: theme.colorScheme.onPrimary,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                    ),
+                                    child: const Text('Submit Answer', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ],
