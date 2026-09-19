@@ -358,7 +358,11 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
   }
 
   void _showCorrectionModal() {
-    final isCorrect = _selectedOptionIndex == _currentDrill.correctIndex;
+    final selectedIdx = _selectedOptionIndex;
+    final String userAnswer = (selectedIdx >= 0 && selectedIdx < _currentDrill.options.length)
+        ? _currentDrill.options[selectedIdx]
+        : '';
+    final bool isCorrect = selectedIdx == _currentDrill.correctIndex;
     final savedController = ref.read(savedDrillsControllerProvider.notifier);
 
     showModalBottomSheet(
@@ -372,7 +376,7 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
               );
 
           return CorrectionModal(
-            userAnswer: _currentDrill.options[_selectedOptionIndex],
+            userAnswer: userAnswer,
             correctAnswer: _currentDrill.options[_currentDrill.correctIndex],
             isCorrect: isCorrect,
             customExplanation: _currentDrill.explanation,
