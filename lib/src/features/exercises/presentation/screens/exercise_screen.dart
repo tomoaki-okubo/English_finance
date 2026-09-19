@@ -390,7 +390,6 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
               setState(() {});
             },
             onNextQuestion: () {
-              Navigator.of(context).pop();
               _handleNextQuestion();
             },
           );
